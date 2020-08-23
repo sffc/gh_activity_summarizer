@@ -1,0 +1,21 @@
+{
+  "name": "gh_activity_summarizer",
+  "version": "0.0.1",
+  "description": "Generates a weekly snapshot of your GitHub activity",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "github",
+    "activity",
+    "events"
+  ],
+  "author": "Shane F. Carr",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@octokit/rest": "^18.0.3",
+    "command-line-args": "^5.1.1",
+    "dotenv": "^8.2.0"
+  }
+}
