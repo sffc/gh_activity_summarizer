@@ -9,11 +9,11 @@ function getDateStr(json) {
 }
 
 function issueToStr(json) {
-	return `"${json.payload.issue.title}" ([#${json.payload.issue.number}](${json.payload.issue.url}))`;
+	return `Issue [#${json.payload.issue.number}](${json.payload.issue.html_url}): "${json.payload.issue.title}"`;
 }
 
 function prToStr(json) {
-	return `"${json.payload.pull_request.title}" ([#${json.payload.pull_request.number}](${json.payload.pull_request.url}))`
+	return `PR [#${json.payload.pull_request.number}](${json.payload.pull_request.url}) by ${json.payload.pull_request.user.login}: "${json.payload.pull_request.title}"`
 }
 
 function prStatsToStr(json) {
@@ -21,53 +21,82 @@ function prStatsToStr(json) {
 }
 
 function IssuesEvent(json) {
-	return [`${json.payload.action} issue ${issueToStr(json)} - ${getDateStr(json)}`];
+	return {
+		id: issueToStr(json),
+		items: [`${json.payload.action} - ${getDateStr(json)}`],
+	};
 }
 
 function IssueCommentEvent(json) {
-	return [`${json.payload.action} a ${json.payload.comment.body.length}-character comment on ${issueToStr(json)} - ${getDateStr(json)}`]
+	return {
+		id: issueToStr(json),
+		items: [`${json.payload.action} a ${json.payload.comment.body.length}-character comment - ${getDateStr(json)}`],
+	};
 }
 
 function PushEvent(json) {
-	const retval = [];
+	const items = [];
 	for (const commit of json.payload.commits) {
 		const branch = /^refs\/heads\/(.*)$/.exec(json.payload.ref)[1];
 		const messageFirstLine = commit.message.split("\n")[0];
-		retval.push(`pushed commit to branch "${branch}": "${messageFirstLine}" (${commit.author.email}) - ${getDateStr(json)}`)
+		items.push(`pushed commit to branch "${branch}": "${messageFirstLine}" (${commit.author.email}) - ${getDateStr(json)}`);
 	}
-	return retval;
+	return {
+		id: null,
+		items,
+	};
 }
 
 function PullRequestEvent(json) {
 	const action = (json.payload.pull_request.merged) ? "merged" : json.payload.action;
-	return [`${action} ${json.payload.pull_request.user.login}'s PR ${prToStr(json)} (${prStatsToStr(json)}) - ${getDateStr(json)}`];
+	return {
+		id: prToStr(json),
+		items: [`${action}: ${prStatsToStr(json)} - ${getDateStr(json)}`],
+	};
 }
 
 // These events are duplicated in the activity stream
 const seenReviewEvents = new Set();
 function PullRequestReviewEvent(json) {
 	if (seenReviewEvents.has(json.payload.review.id)) {
-		return [];
+		return null;
 	}
 	seenReviewEvents.add(json.payload.review.id);
-	return [`${json.payload.action} review (${json.payload.review.state}) for ${json.payload.pull_request.user.login}'s PR ${prToStr(json)} - ${getDateStr(json)}`];
+	return {
+		id: prToStr(json),
+		items: [`${json.payload.action} review (${json.payload.review.state}) - ${getDateStr(json)}`],
+	};
 }
 
 function PullRequestReviewCommentEvent(json) {
 	// Too much detail; ignore
-	return [];
+	return null;
+}
+
+function CommitCommentEvent(json) {
+	// Too much detail; ignore
+	return null;
 }
 
 function CreateEvent(json) {
-	return [`created branch ${json.payload.ref} - ${getDateStr(json)}`];
+	return {
+		id: null,
+		items: [`created branch ${json.payload.ref} - ${getDateStr(json)}`],
+	};
 }
 
 function DeleteEvent(json) {
-	return [`deleted branch ${json.payload.ref} - ${getDateStr(json)}`];
+	return {
+		id: null,
+		items: [`deleted branch ${json.payload.ref} - ${getDateStr(json)}`],
+	};
 }
 
 function MemberEvent(json) {
-	return [`${json.payload.action} ${json.payload.member.login}`]
+	return {
+		id: null,
+		items: [`${json.payload.action} ${json.payload.member.login}`],
+	};
 }
 
 module.exports = {
@@ -77,6 +106,7 @@ module.exports = {
 	PullRequestEvent,
 	PullRequestReviewEvent,
 	PullRequestReviewCommentEvent,
+	CommitCommentEvent,
 	CreateEvent,
 	DeleteEvent,
 	MemberEvent,

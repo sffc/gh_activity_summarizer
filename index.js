@@ -5,13 +5,28 @@ require("dotenv").config();
 
 async function main(username, startDate) {
 	const activityByRepo = await summarize(username, startDate);
-	for (const [repo, activities] of Object.entries(activityByRepo)) {
+	for (const [repo, activityByType] of Object.entries(activityByRepo)) {
 		console.log(`### ${repo}`);
 		console.log();
-  	for (const activity of activities) {
-  		console.log(`- ${activity}`);
-  	}
-  	console.log();
+		for (let [id, activities] of Object.entries(activityByType)) {
+			// When does `id` get converted to a string?
+			if (id === "null") {
+				continue;
+			}
+			console.log(`- ${id}`);
+			for (const activity of activities) {
+				console.log(`    - ${activity}`);
+			}
+			console.log();
+		}
+		if (activityByType[null]) {
+			console.log(`- Other Activity:`);
+			for (const activity of activityByType[null]) {
+				console.log(`    - ${activity}`);
+			}
+			console.log();
+		}
+		console.log();
 	}
 }
 

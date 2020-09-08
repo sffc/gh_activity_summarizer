@@ -18,7 +18,7 @@ async function getActivity(username, oldestDate) {
 			activity.push(...response.data);
 		} catch (err) {
 			if (err.message.indexOf("pagination is limited for this resource") !== -1) {
-				console.error("Warning: Reached pagination limit of data");
+				console.error("Warning: Reached pagination limit of data; oldest event:", new Date(activity[activity.length-1].created_at).toLocaleString("en-US", { timeZoneName: "long" }));
 				break;
 			} else {
 				throw err;
@@ -33,15 +33,24 @@ async function summarize(username, oldestDate) {
 
 	const activityByRepo = {};
 	for (let entry of activity) {
-		if (json_to_md[entry.type]) {
-			const items = json_to_md[entry.type](entry);
-			if (!activityByRepo[entry.repo.name]) {
-				activityByRepo[entry.repo.name] = [];
-			}
-			activityByRepo[entry.repo.name].push(...items);
-		} else {
+		if (!json_to_md[entry.type]) {
 			console.error("Warning: Unknown type:", entry.type, entry);
+			continue;
 		}
+		const entrymd = json_to_md[entry.type](entry);
+		if (!entrymd) {
+			// Skippable type
+			continue;
+		}
+		const { id, items } = entrymd;
+
+		if (!activityByRepo[entry.repo.name]) {
+			activityByRepo[entry.repo.name] = {};
+		}
+		if (!activityByRepo[entry.repo.name][id]) {
+			activityByRepo[entry.repo.name][id] = [];
+		}
+		activityByRepo[entry.repo.name][id].push(...items);
 	}
 
 	return activityByRepo;
